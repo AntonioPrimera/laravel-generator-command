@@ -120,7 +120,18 @@ abstract class FileGeneratorCommand extends Command
 		//validate the recipe
 		$recipe = $this->createRecipeInstance($fileRecipe);
 		
-		$stub = new Stub($recipe->stub, $recipe->path . DIRECTORY_SEPARATOR . $this->getNameArgument());
+		$stub = new Stub(
+			//determine the absolute path to the stub
+			$this->determineAbsolutePath(
+				$recipe->stub,
+				$recipe->rootPath
+			),
+			//determine the absolute path to the target file
+			$this->determineAbsolutePath(
+				$recipe->path,
+				$recipe->rootPath
+			) . DIRECTORY_SEPARATOR . $this->getNameArgument()
+		);
 		
 		$stub->formatFileName($recipe->fileNameFormat)
 			->setExtension($recipe->extension)
@@ -145,15 +156,9 @@ abstract class FileGeneratorCommand extends Command
 		
 		$this->validateFileRecipe($fileRecipe);
 		
-		//if relative paths are given, make them relative to the app_path() (Laravel helper)
-		$recipe = new FileRecipe(
-			$this->determineAbsolutePath($fileRecipe['stub'], $fileRecipe['rootPath'] ?? 'app_path'),
-			$this->determineAbsolutePath(
-				$fileRecipe['path'] ?? '',
-				$fileRecipe['rootPath'] ?? 'app_path'
-			)
-		);
+		$recipe = new FileRecipe($fileRecipe['stub'], $fileRecipe['path'] ?? '');
 		
+		$recipe->rootPath = $fileRecipe['rootPath'] ?? null;
 		$recipe->extension = $fileRecipe['extension'] ?? null;
 		$recipe->replace = $fileRecipe['replace'] ?? [];
 		$recipe->rootNamespace = $fileRecipe['rootNamespace'] ?? null;
@@ -171,12 +176,12 @@ abstract class FileGeneratorCommand extends Command
 	 * an existing folder). If recipePath is callable, its result is returned.
 	 *
 	 * @param mixed $recipePath
-	 * @param mixed $rootPath
+	 * @param mixed $recipeRootPath
 	 *
 	 * @return string
 	 * @throws InvalidRecipeException
 	 */
-	protected function determineAbsolutePath(mixed $recipePath, mixed $rootPath = 'app_path'): string
+	protected function determineAbsolutePath(mixed $recipePath, mixed $recipeRootPath): string
 	{
 		if ($this->isAbsolutePath($recipePath))
 			return $recipePath;
@@ -184,15 +189,18 @@ abstract class FileGeneratorCommand extends Command
 		if (is_callable($recipePath))
 			return call_user_func($recipePath);
 		
+		//if $rootPath is empty / null, it is considered to be app_path()
+		$rootPath = $recipeRootPath ?: 'app_path';
+		
 		if (is_callable($rootPath))
 			return call_user_func($rootPath, $recipePath);
 		
-		if (is_dir($rootPath))
+		if ($this->isAbsolutePath($rootPath))
 			return rtrim($rootPath, '/\\') . DIRECTORY_SEPARATOR . $recipePath;
 		
 		throw new InvalidRecipeException(
 			'The given recipe path must be absolute'
-			. " OR the recipe rootPath must be callable or an existing folder (path: $recipePath)"
+			. " OR the recipe rootPath must be callable or an absolute path (path: $recipePath) (rootPath: $rootPath)"
 		);
 	}
 	

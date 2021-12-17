@@ -9,7 +9,6 @@
             "email": "antonio@cus.ro"
         }
     ],
-    "minimum-stability": "dev",
     "require-dev": {
         "antonioprimera/lara-packager": "dev-master",
         "orchestra/testbench": "^6.0"

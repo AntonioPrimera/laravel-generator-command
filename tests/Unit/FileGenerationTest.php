@@ -39,6 +39,8 @@ class FileGenerationTest extends TestCase
 		$this->cleanupFilesAndFolders();
 	}
 	
+	//--- Actual tests ------------------------------------------------------------------------------------------------
+	
 	/** @test */
 	public function test_context_test_artisan_command_is_set_up_and_can_be_run()
 	{
@@ -179,5 +181,81 @@ class FileGenerationTest extends TestCase
 		unlink($targetPath);
 		unlink($stubPath);
 		rmdir(app_path('stubs'));
+	}
+	
+	/** @test */
+	public function if_a_different_rootPath_is_given_the_relative_path_will_be_appended_to_the_root_path()
+	{
+		RelativePathGeneratorCommand::$staticRecipe = [
+			'Controller' => [
+				'stub' => app_path('stubs/SampleController.php.stub'),
+				'path' => 'Http/Controllers',
+				'rootPath' => resource_path('livewire/controllers'),
+			],
+		];
+		
+		$targetPath = resource_path('livewire/controllers/Http/Controllers/SomeSpecialController.php');
+		$stubPath = app_path('stubs/SampleController.php.stub');
+		
+		//setup
+		if (!is_dir(dirname($stubPath)))
+			mkdir(dirname($stubPath));
+		
+		if (!file_exists($stubPath))
+			file_put_contents($stubPath, 'Sample Controller');
+		
+		if (file_exists($targetPath))
+			unlink($targetPath);
+		
+		//actual test
+		$this->assertFileDoesNotExist($targetPath);
+		
+		Artisan::call('make:gen-test-relative', ['name' => 'SomeSpecialController']);
+		
+		$this->assertFilesExist($targetPath);
+		$this->assertFileContentsEquals('Sample Controller', $targetPath);
+		
+		//cleanup
+		unlink($targetPath);
+		unlink($stubPath);
+		rmdir(dirname($stubPath));
+	}
+	
+	/** @test */
+	public function if_a_callable_rootPath_is_given_the_targer_path_will_be_determined_by_the_root_path_callable()
+	{
+		RelativePathGeneratorCommand::$staticRecipe = [
+			'Controller' => [
+				'stub' => app_path('stubs/SampleController.php.stub'),
+				'path' => 'Http/Controllers',
+				'rootPath' => 'resource_path',
+			],
+		];
+		
+		$targetPath = resource_path('Http/Controllers/SomeSpecialController.php');
+		$stubPath = app_path('stubs/SampleController.php.stub');
+		
+		//setup
+		if (!is_dir(dirname($stubPath)))
+			mkdir(dirname($stubPath));
+		
+		if (!file_exists($stubPath))
+			file_put_contents($stubPath, 'Sample Controller');
+		
+		if (file_exists($targetPath))
+			unlink($targetPath);
+		
+		//actual test
+		$this->assertFileDoesNotExist($targetPath);
+		
+		Artisan::call('make:gen-test-relative', ['name' => 'SomeSpecialController']);
+		
+		$this->assertFilesExist($targetPath);
+		$this->assertFileContentsEquals('Sample Controller', $targetPath);
+		
+		//cleanup
+		unlink($targetPath);
+		unlink($stubPath);
+		rmdir(dirname($stubPath));
 	}
 }
