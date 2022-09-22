@@ -1,6 +1,7 @@
 <?php
 namespace AntonioPrimera\Artisan\Tests\Unit;
 
+use AntonioPrimera\Artisan\FileRecipe;
 use AntonioPrimera\Artisan\Tests\CustomAssertions;
 use AntonioPrimera\Artisan\Tests\TestCase;
 use AntonioPrimera\Artisan\Tests\TestContext\ComplexGeneratorCommand;
@@ -141,8 +142,6 @@ class FileGenerationTest extends TestCase
 		
 		//cleanup
 		unlink($targetPath);
-		unlink($stubPath);
-		rmdir(app_path('stubs'));
 	}
 	
 	/** @test */
@@ -179,8 +178,6 @@ class FileGenerationTest extends TestCase
 		
 		//cleanup
 		unlink($targetPath);
-		unlink($stubPath);
-		rmdir(app_path('stubs'));
 	}
 	
 	/** @test */
@@ -217,8 +214,6 @@ class FileGenerationTest extends TestCase
 		
 		//cleanup
 		unlink($targetPath);
-		unlink($stubPath);
-		rmdir(dirname($stubPath));
 	}
 	
 	/** @test */
@@ -255,7 +250,38 @@ class FileGenerationTest extends TestCase
 		
 		//cleanup
 		unlink($targetPath);
-		unlink($stubPath);
-		rmdir(dirname($stubPath));
+	}
+	
+	//--- Testing some custom scenarios -------------------------------------------------------------------------------
+	
+	/** @test */
+	public function testing_a_failing_scenario_from_package_antonioprimera_laravel_admin_panel()
+	{
+		//--- Setup ------------------------------------------------
+		$stubPath = app_path('stubs/sample.blade.php.stub');
+		
+		if (!is_dir(dirname($stubPath)))
+			mkdir(dirname($stubPath));
+		
+		if (!file_exists($stubPath))
+			file_put_contents($stubPath, 'Sample Blade');
+		
+		$bladeRecipe = new FileRecipe(
+			$stubPath,
+			trim('livewire/admin-panel', '/\\')
+		);
+		$bladeRecipe->rootPath = base_path('resources/views');
+		$bladeRecipe->fileNameFormat = 'kebab';
+		
+		RelativePathGeneratorCommand::$staticRecipe = [
+			'Blade File' => $bladeRecipe,
+		];
+		
+		//--- Call the generator command --------------------------
+		Artisan::call('make:gen-test-relative', ['name' => 'MySpecialAdminPage']);
+		
+		$this->assertFilesExist([
+			resource_path('views/livewire/admin-panel/my-special-admin-page.blade.php')
+		]);
 	}
 }

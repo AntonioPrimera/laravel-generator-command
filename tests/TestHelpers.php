@@ -37,8 +37,17 @@ trait TestHelpers
 		if (!is_dir($dir))
 			return;
 		
-		//only delete folders and files in the TestContext/GeneratedFiles folder
-		if (!Str::of($dir)->startsWith($this->realPath(__DIR__ . '/TestContext/GeneratedFiles')))
+		$validPaths = [
+			'TestContext' => $this->realPath(__DIR__ . '/TestContext/GeneratedFiles'),
+			'AppStubs' => $this->realPath(app_path('stubs'))
+		];
+		
+		//only delete folders and files in one of the $validPaths
+		if (!(
+			Str::of($dir)->startsWith($validPaths['TestContext'])
+			||
+			Str::of($dir)->startsWith($validPaths['AppStubs'])
+		))
 			throw new \Exception("Trying to delete folder outside the safe zone: $dir");
 		
 		$filesAndFolders = scandir($dir);
@@ -60,5 +69,6 @@ trait TestHelpers
 	protected function cleanupFilesAndFolders()
 	{
 		$this->rrmdir(__DIR__ . '/TestContext/GeneratedFiles');
+		$this->rrmdir(app_path('stubs'));
 	}
 }

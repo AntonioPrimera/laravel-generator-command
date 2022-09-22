@@ -12,56 +12,49 @@ abstract class FileGeneratorCommand extends Command
 {
 	
 	/**
-	 * The argument name holding the
-	 * target file name.
-	 *
+	 * The argument name holding the target file name.
 	 * e.g. $signature = 'make:admin-page {name}'
-	 *
 	 * @var string
 	 */
 	protected string $nameArgument = 'name';
 	
-	///**
-	// * @var Collection
-	// */
-	//protected Collection $nameParts;
-	
 	//a collection of file recipes
-	protected array $recipe = [
-		//'Component' => [
-		//	'scope' => 'Admin Panel Livewire Component',
-		//	'stub' => 'stubPath/relative/to/the/package/root',
-		//	'extension' => 'extension', 	//could be derived from the stub name (by removing the last .stub)
-		//	'fileNameFormat' => 'kebab',	//or function($fileName) { return Str::kebab($fileName); }
-		//	'replace' => [
-		//		//'DUMMY_NAMESPACE' 		=> $this->getNamespace(),
-		//		//'DUMMY_CLASS' 			=> $this->nameParts->last(),
-		//		//'DUMMY_BLADE_REFERENCE' => $this->getBladeReference(),
-		//	],
-		//],
-	];
+	protected array $recipe = [];
 	
 	/**
 	 * @throws Exception
 	 */
 	public function handle()
 	{
-		////set up the name parts
-		//$this->setup();
+		if ($this->isDryRun()) {
+			$this->warn("Dry run - no files will be created");
+			$this->newLine();
+		}
 		
 		$recipe = $this->recipe() ?: $this->recipe;
+		$createdFiles = [];
 		
 		try {
+			$this->beforeFileCreation($this->isDryRun());											     //  -->>> Hook
+			
 			foreach ($recipe as $key => $fileRecipe) {
-				$path = $this->createFileFromRecipe($fileRecipe);
+				$stub = $this->createFileFromRecipe($fileRecipe);
 				$fileScope = $fileRecipe instanceof FileRecipe
 					? ($fileRecipe->scope ?: $key)
 					: ($fileRecipe['scope'] ?? $key);
 				
-				$this->line("<fg=green;>Created new $fileScope at: $path</>");
+				$createdFiles[] = $stub->getTargetFilePath();
+				$this->info("Created new $fileScope at: {$stub->getTargetFilePath()}");
+				
+				//output the target file contents if in dry-run mode (debug mode)
+				if ($this->isDryRun())
+					$this->outputStubContentsToConsole($stub);
 			}
+			
+			$this->afterFileCreation($this->isDryRun(), $createdFiles);						    		 //  -->>> Hook
 		} catch (InvalidRecipeException $exception) {
 			$this->line("<fg=red>Error: {$exception->getMessage()}</>");
+			$this->cleanupAfterError($this->isDryRun(), $createdFiles);								     //  -->>> Hook
 			return 1;
 		}
 		
@@ -90,36 +83,68 @@ abstract class FileGeneratorCommand extends Command
 		return [];
 	}
 	
+	//--- Hooks ---------------------------------------------------------------------------------------------------->>>
+	
 	/**
-	 * The default replacements for every file. The $fileRecipe is
-	 * the recipe array for the current file, either an entry
-	 * in $this->recipe or $this->recipe().
-	 *
-	 * @param array $fileRecipe
-	 *
-	 * @return array
+	 * Hook - code to run before file generation
 	 */
-	protected function defaultReplacements(FileRecipe $fileRecipe): array
+	protected function beforeFileCreation(bool $isDryRun)
 	{
-		$nameParts = $this->nameParts();
-		
-		return [
-			'DUMMY_NAMESPACE' => $this->getPsr4Namespace(
-					$nameParts,
-					$fileRecipe->rootNamespace ?: 'App'
-				),
-			'DUMMY_CLASS' 	  => $nameParts->last(),
-		];
+		//add any code which should be run before file generation
 	}
+	
+	/**
+	 * Hook - code to run after successful file generation
+	 *
+	 * @param bool $isDryRun - whether this command is run in test mode (Dry Run)
+	 * @param array $createdFiles - a list of files which were created by this command (absolute paths)
+	 */
+	protected function afterFileCreation(bool $isDryRun, array $createdFiles)
+	{
+		//add any code which should be run after file generation
+	}
+	
+	/**
+	 * Hook - code to run after a failure during file generation
+	 *
+	 * @param bool $isDryRun - whether this command is run in test mode (Dry Run)
+	 * @param array $createdFiles - a list of files which were created by this command (absolute paths)
+	 */
+	protected function cleanupAfterError(bool $isDryRun, array $createdFiles)
+	{
+		$this->info('Starting cleanup procedure...');
+		$successfulCleanup = true;
+		
+		//try to remove all generated files
+		foreach ($createdFiles as $createdFile) {
+			try {
+				unlink($createdFile);
+				$this->info("Cleanup - removed generated file: $createdFile");
+			} catch (Exception $exception) {
+				$this->error("Cleanup - failed to remove generated file: $createdFile");
+				$successfulCleanup = false;
+			}
+		}
+		
+		if ($successfulCleanup)
+			$this->info('Cleanup finished!');
+		else
+			$this->warn(
+				'Cleanup finished with issues! Please check the cleanup log above and remove the files manually'
+			);
+	}
+	
+	//--- Protected helpers -------------------------------------------------------------------------------------------
 	
 	/**
 	 * @throws Exception
 	 */
-	protected function createFileFromRecipe(array | FileRecipe $fileRecipe): string
+	protected function createFileFromRecipe(array | FileRecipe $fileRecipe): Stub
 	{
 		//validate the recipe
 		$recipe = $this->createRecipeInstance($fileRecipe);
 		
+		//setup the stub
 		$stub = new Stub(
 			//determine the absolute path to the stub
 			$this->determineAbsolutePath(
@@ -133,12 +158,16 @@ abstract class FileGeneratorCommand extends Command
 			) . DIRECTORY_SEPARATOR . $this->getNameArgument()
 		);
 		
+		//prepare the stub, based on the recipe data
 		$stub->formatFileName($recipe->fileNameFormat)
 			->setExtension($recipe->extension)
-			->replace($this->determineReplacements($recipe))
-			->generate();
+			->replace($this->determineReplacements($recipe));
 		
-		return $stub->getTargetFilePath();
+		//create the files if it's not a dry run
+		if (!$this->isDryRun())
+			$stub->generate();
+		
+		return $stub;
 	}
 	
 	/**
@@ -167,7 +196,27 @@ abstract class FileGeneratorCommand extends Command
 		return $recipe;
 	}
 	
-	//--- Protected helpers -------------------------------------------------------------------------------------------
+	/**
+	 * The default replacements for every file. The $fileRecipe is
+	 * the recipe array for the current file, either an entry
+	 * in $this->recipe or $this->recipe().
+	 *
+	 * @param FileRecipe $fileRecipe
+	 *
+	 * @return array
+	 */
+	protected function defaultReplacements(FileRecipe $fileRecipe): array
+	{
+		$nameParts = $this->nameParts();
+		
+		return [
+			'DUMMY_NAMESPACE' => $this->getPsr4Namespace(
+				$nameParts,
+				$fileRecipe->rootNamespace ?: 'App'
+			),
+			'DUMMY_CLASS' 	  => $nameParts->last(),
+		];
+	}
 	
 	/**
 	 * Return the absolute path for a given path. If already absolute, it just returns the given path.
@@ -252,5 +301,30 @@ abstract class FileGeneratorCommand extends Command
 	protected function getNameArgument(): array | null | string
 	{
 		return $this->argument($this->nameArgument);
+	}
+	
+	protected function isDryRun(): bool
+	{
+		return $this->hasOption('dry-run') ? $this->option('dry-run') : false;
+	}
+	
+	protected function outputStubContentsToConsole(Stub $stub)
+	{
+		$this->newLine();
+		$this->warn("Target file contents:");
+		$this->newLine();
+		
+		$lines = Str::of($stub->getContents())->explode("\n");
+		
+		foreach ($lines->take(30) as $line) {
+			$this->line($line);
+		}
+		
+		if ($lines->count() > 30) {
+			$this->newLine();
+			$this->warn("... (only the first 30 lines are shown) ...");
+		}
+		
+		$this->newLine();
 	}
 }

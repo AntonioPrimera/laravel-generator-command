@@ -8,7 +8,7 @@ class RelativePathGeneratorCommand extends FileGeneratorCommand
 {
 	public static array $staticRecipe = [];
 	
-	protected $signature = 'make:gen-test-relative {name}';
+	protected $signature = 'make:gen-test-relative {name} {--dry-run}';
 	
 	protected function recipe(): array
 	{
