@@ -35,7 +35,7 @@ abstract class FileGeneratorCommand extends Command
 		$createdFiles = [];
 		
 		try {
-			$this->beforeFileCreation($this->isDryRun());											     //  -->>> Hook
+			$this->beforeFileCreation($this->isDryRun(), $recipe);										 //  -->>> Hook
 			
 			foreach ($recipe as $key => $fileRecipe) {
 				$stub = $this->createFileFromRecipe($fileRecipe);
@@ -51,10 +51,10 @@ abstract class FileGeneratorCommand extends Command
 					$this->outputStubContentsToConsole($stub);
 			}
 			
-			$this->afterFileCreation($this->isDryRun(), $createdFiles);						    		 //  -->>> Hook
+			$this->afterFileCreation($this->isDryRun(), $createdFiles, $recipe);			    		 //  -->>> Hook
 		} catch (InvalidRecipeException $exception) {
 			$this->line("<fg=red>Error: {$exception->getMessage()}</>");
-			$this->cleanupAfterError($this->isDryRun(), $createdFiles);								     //  -->>> Hook
+			$this->cleanupAfterError($this->isDryRun(), $createdFiles, $recipe);					     //  -->>> Hook
 			return 1;
 		}
 		
@@ -88,7 +88,7 @@ abstract class FileGeneratorCommand extends Command
 	/**
 	 * Hook - code to run before file generation
 	 */
-	protected function beforeFileCreation(bool $isDryRun)
+	protected function beforeFileCreation(bool $isDryRun, array $recipe)
 	{
 		//add any code which should be run before file generation
 	}
@@ -96,10 +96,11 @@ abstract class FileGeneratorCommand extends Command
 	/**
 	 * Hook - code to run after successful file generation
 	 *
-	 * @param bool $isDryRun - whether this command is run in test mode (Dry Run)
-	 * @param array $createdFiles - a list of files which were created by this command (absolute paths)
+	 * @param bool $isDryRun 		- whether this command is run in test mode (Dry Run)
+	 * @param array $createdFiles 	- a list of files which were created by this command (absolute paths)
+	 * @param array $recipe 		- the recipe used to generate the files
 	 */
-	protected function afterFileCreation(bool $isDryRun, array $createdFiles)
+	protected function afterFileCreation(bool $isDryRun, array $createdFiles, array $recipe)
 	{
 		//add any code which should be run after file generation
 	}
@@ -110,7 +111,7 @@ abstract class FileGeneratorCommand extends Command
 	 * @param bool $isDryRun - whether this command is run in test mode (Dry Run)
 	 * @param array $createdFiles - a list of files which were created by this command (absolute paths)
 	 */
-	protected function cleanupAfterError(bool $isDryRun, array $createdFiles)
+	protected function cleanupAfterError(bool $isDryRun, array $createdFiles, array $recipe)
 	{
 		$this->info('Starting cleanup procedure...');
 		$successfulCleanup = true;
