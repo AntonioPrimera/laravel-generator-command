@@ -10,7 +10,7 @@ class SimpleGeneratorCommand extends FileGeneratorCommand
 	
 	protected array $recipe = [
 		'ComponentClass' => [
-			'path' => __DIR__ . '/GeneratedFiles/Components',
+			'target' => __DIR__ . '/GeneratedFiles/Components',
 			'stub' => __DIR__ . '/stubs/Component.php',
 			'rootNamespace' => 'AntonioPrimera\\My\\Namespace',
 			'replace' => [

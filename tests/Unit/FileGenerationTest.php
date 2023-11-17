@@ -115,124 +115,16 @@ class FileGenerationTest extends TestCase
 		RelativePathGeneratorCommand::$staticRecipe = [
 			'Controller' => [
 				'stub' => 'stubs/SampleController.php.stub',
-				'path' => 'Http/Controllers',
+				'target' => 'Http/Controllers',
 			],
 		];
 		
-		$targetPath = app_path('Http/Controllers/SomeSpecialController.php');
-		$stubPath = app_path('stubs/SampleController.php.stub');
+		$targetPath = base_path('Http/Controllers/SomeSpecialController.php');
+		$stubPath = base_path('stubs/SampleController.php.stub');
 		
 		//setup
-		if (!is_dir(app_path('stubs')))
-			mkdir(app_path('stubs'));
-		
-		if (!file_exists($stubPath))
-			file_put_contents($stubPath, 'Sample Controller');
-		
-		if (file_exists($targetPath))
-			unlink($targetPath);
-		
-		//actual test
-		$this->assertFileDoesNotExist($targetPath);
-		
-		Artisan::call('make:gen-test-relative', ['name' => 'SomeSpecialController']);
-		
-		$this->assertFilesExist($targetPath);
-		$this->assertFileContentsEquals('Sample Controller', $targetPath);
-		
-		//cleanup
-		unlink($targetPath);
-	}
-	
-	/** @test */
-	public function if_a_callable_target_path_is_given_the_callable_will_return_the_actual_path()
-	{
-		RelativePathGeneratorCommand::$staticRecipe = [
-			'Controller' => [
-				'stub' 			 => 'stubs/sampleConfig.php.stub',
-				'path' 			 => 'config_path',
-				'fileNameFormat' => 'kebab',
-			],
-		];
-		
-		$targetPath = config_path('some-special-config.php');
-		$stubPath = app_path('stubs/sampleConfig.php.stub');
-		
-		//setup
-		if (!is_dir(app_path('stubs')))
-			mkdir(app_path('stubs'));
-		
-		if (!file_exists($stubPath))
-			file_put_contents($stubPath, 'sample-config-file-contents');
-		
-		if (file_exists($targetPath))
-			unlink($targetPath);
-		
-		//actual test
-		$this->assertFileDoesNotExist($targetPath);
-		
-		Artisan::call('make:gen-test-relative', ['name' => 'SomeSpecialConfig']);
-		
-		$this->assertFilesExist($targetPath);
-		$this->assertFileContentsEquals('sample-config-file-contents', $targetPath);
-		
-		//cleanup
-		unlink($targetPath);
-	}
-	
-	/** @test */
-	public function if_a_different_rootPath_is_given_the_relative_path_will_be_appended_to_the_root_path()
-	{
-		RelativePathGeneratorCommand::$staticRecipe = [
-			'Controller' => [
-				'stub' => app_path('stubs/SampleController.php.stub'),
-				'path' => 'Http/Controllers',
-				'rootPath' => resource_path('livewire/controllers'),
-			],
-		];
-		
-		$targetPath = resource_path('livewire/controllers/Http/Controllers/SomeSpecialController.php');
-		$stubPath = app_path('stubs/SampleController.php.stub');
-		
-		//setup
-		if (!is_dir(dirname($stubPath)))
-			mkdir(dirname($stubPath));
-		
-		if (!file_exists($stubPath))
-			file_put_contents($stubPath, 'Sample Controller');
-		
-		if (file_exists($targetPath))
-			unlink($targetPath);
-		
-		//actual test
-		$this->assertFileDoesNotExist($targetPath);
-		
-		Artisan::call('make:gen-test-relative', ['name' => 'SomeSpecialController']);
-		
-		$this->assertFilesExist($targetPath);
-		$this->assertFileContentsEquals('Sample Controller', $targetPath);
-		
-		//cleanup
-		unlink($targetPath);
-	}
-	
-	/** @test */
-	public function if_a_callable_rootPath_is_given_the_targer_path_will_be_determined_by_the_root_path_callable()
-	{
-		RelativePathGeneratorCommand::$staticRecipe = [
-			'Controller' => [
-				'stub' => app_path('stubs/SampleController.php.stub'),
-				'path' => 'Http/Controllers',
-				'rootPath' => 'resource_path',
-			],
-		];
-		
-		$targetPath = resource_path('Http/Controllers/SomeSpecialController.php');
-		$stubPath = app_path('stubs/SampleController.php.stub');
-		
-		//setup
-		if (!is_dir(dirname($stubPath)))
-			mkdir(dirname($stubPath));
+		if (!is_dir(base_path('stubs')))
+			mkdir(base_path('stubs'));
 		
 		if (!file_exists($stubPath))
 			file_put_contents($stubPath, 'Sample Controller');
@@ -255,10 +147,10 @@ class FileGenerationTest extends TestCase
 	//--- Testing some custom scenarios -------------------------------------------------------------------------------
 	
 	/** @test */
-	public function testing_a_failing_scenario_from_package_antonioprimera_laravel_admin_panel()
+	public function testing_a_failing_scenario_from_package_antonio_primera_laravel_admin_panel()
 	{
 		//--- Setup ------------------------------------------------
-		$stubPath = app_path('stubs/sample.blade.php.stub');
+		$stubPath = base_path('stubs/sample.blade.php.stub');
 		
 		if (!is_dir(dirname($stubPath)))
 			mkdir(dirname($stubPath));
@@ -268,10 +160,9 @@ class FileGenerationTest extends TestCase
 		
 		$bladeRecipe = new FileRecipe(
 			$stubPath,
-			trim('livewire/admin-panel', '/\\')
+			base_path('resources/views/' . trim('livewire/admin-panel', '/\\')),
+			fileNameTransformer: 'kebab'
 		);
-		$bladeRecipe->rootPath = base_path('resources/views');
-		$bladeRecipe->fileNameFormat = 'kebab';
 		
 		RelativePathGeneratorCommand::$staticRecipe = [
 			'Blade File' => $bladeRecipe,

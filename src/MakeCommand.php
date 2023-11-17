@@ -9,15 +9,12 @@ class MakeCommand extends FileGeneratorCommand
 	
 	protected function recipe(): array
 	{
-		$recipe = new FileRecipe(
-			__DIR__ . '/stubs/GeneratorCommandStub.php.stub',
-			app_path('Console/Commands')
-		);
-		
-		$recipe->rootNamespace = 'App\\Console\\Commands';
-		
 		return [
-			'Generator Command' => $recipe,
+			'Generator Command' => FileRecipe::create(
+					__DIR__ . '/stubs/GeneratorCommandStub.php.stub',
+					app_path('Console/Commands/'),
+					'App\\Console\\Commands'
+				),
 		];
 	}
 }
