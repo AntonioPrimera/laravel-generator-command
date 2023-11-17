@@ -2,6 +2,7 @@
 
 namespace AntonioPrimera\Artisan;
 
+use AntonioPrimera\Artisan\Exceptions\TargetFileExistsException;
 use Illuminate\Contracts\Filesystem\FileNotFoundException;
 
 class Stub
@@ -33,6 +34,9 @@ class Stub
 	{
 		if ($dryRun)
 			return $this;
+		
+		if ($this->target->exists())
+			throw new TargetFileExistsException("Target file {$this->target->getFullPath()} already exists");
 		
 		$this->target->setContents($this->source->getContents())->replaceInFile($replace);
 		return $this;

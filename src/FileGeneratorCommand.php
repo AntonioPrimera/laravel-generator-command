@@ -2,6 +2,7 @@
 
 namespace AntonioPrimera\Artisan;
 
+use AntonioPrimera\Artisan\Exceptions\TargetFileExistsException;
 use Exception;
 use Illuminate\Console\Command;
 use Illuminate\Support\Collection;
@@ -37,11 +38,17 @@ abstract class FileGeneratorCommand extends Command
 			
 			foreach ($recipe as $fileRecipe) {
 				/* @var FileRecipe $fileRecipe */
-				$fileRecipe->run($this->getTargetRelativePath(), $this->getTargetFileName(), $this->isDryRun());
 				
-				$createdFile = $fileRecipe->target->getFullPath();
-				$this->createdFiles[] = $createdFile;
-				$this->info("Created new $fileRecipe->scope at: $createdFile");
+				try {
+					$fileRecipe->run($this->getTargetRelativePath(), $this->getTargetFileName(), $this->isDryRun());
+					
+					$createdFile = $fileRecipe->target->getFullPath();
+					$this->createdFiles[] = $createdFile;
+					$this->info("Created new $fileRecipe->scope at: $createdFile");
+				} catch (TargetFileExistsException $exception) {
+					$this->warn($exception->getMessage());
+				}
+				
 				
 				//output the target file contents if in dry-run mode (debug mode)
 				//if ($this->isDryRun())

@@ -144,6 +144,38 @@ class FileGenerationTest extends TestCase
 		unlink($targetPath);
 	}
 	
+	/** @test */
+	public function if_the_target_file_already_exists_it_will_not_be_overwritten()
+	{
+		RelativePathGeneratorCommand::$staticRecipe = [
+			'Controller' => [
+				'stub' => 'stubs/SampleController.php.stub',
+				'target' => 'Http/Controllers',
+			],
+		];
+		
+		//setup
+		$targetPath = base_path('Http/Controllers/SomeSpecialController.php');
+		$stubPath = base_path('stubs/SampleController.php.stub');
+		
+		if (!is_dir(base_path('stubs')))
+			mkdir(base_path('stubs'));
+		
+		file_put_contents($stubPath, 'Sample Controller');
+		file_put_contents($targetPath, 'Existing Controller');
+		
+		//actual test
+		$this->assertFileExists($targetPath);
+		$this->assertFileContentsEquals('Existing Controller', $targetPath);
+		
+		Artisan::call('make:gen-test-relative', ['name' => 'SomeSpecialController']);
+		
+		$this->assertFileContentsEquals('Existing Controller', $targetPath);
+		
+		//cleanup
+		unlink($targetPath);
+	}
+	
 	//--- Testing some custom scenarios -------------------------------------------------------------------------------
 	
 	/** @test */
