@@ -171,39 +171,39 @@ abstract class FileGeneratorCommand extends Command
 		return $this->_cachedFileRecipeList;
 	}
 	
-	/**
-	 * Replace DUMMY_NAMESPACE and DUMMY_CLASS with the default values
-	 */
-	protected function defaultReplacements(array|FileRecipe $fileRecipe): array
-	{
-		$rootNamespace = $fileRecipe instanceof FileRecipe
-			? $fileRecipe->rootNamespace
-			: ($fileRecipe['rootNamespace'] ?? null);
-		
-		return [
-			'DUMMY_NAMESPACE' => $this->getPsr4Namespace($rootNamespace ?: 'App'),
-			'DUMMY_CLASS' 	  => Str::studly($this->nameParts()->last()),
-		];
-	}
-	
-	protected function getPsr4Namespace(string $rootNamespace): string
-	{
-		$nameParts = $this->nameParts();
-		
-		//implode the name parts, except the last part (the last part will be the class name)
-		return collect(trim($rootNamespace, '\\'))
-			->merge($nameParts->take($nameParts->count() - 1))
-			->implode('\\');
-	}
-	
-	protected function nameParts(): Collection
-	{
-		return Str::of($this->getNameArgument())
-			->replace('/', DIRECTORY_SEPARATOR)
-			->replace('\\', DIRECTORY_SEPARATOR)
-			->explode(DIRECTORY_SEPARATOR)
-			->filter();
-	}
+	///**
+	// * Replace DUMMY_NAMESPACE and DUMMY_CLASS with the default values
+	// */
+	//protected function defaultReplacements(array|FileRecipe $fileRecipe): array
+	//{
+	//	$rootNamespace = $fileRecipe instanceof FileRecipe
+	//		? $fileRecipe->rootNamespace
+	//		: ($fileRecipe['rootNamespace'] ?? null);
+	//
+	//	return [
+	//		'DUMMY_NAMESPACE' => $this->getPsr4Namespace($rootNamespace ?: 'App'),
+	//		'DUMMY_CLASS' 	  => Str::studly($this->nameParts()->last()),
+	//	];
+	//}
+	//
+	//protected function getPsr4Namespace(string $rootNamespace): string
+	//{
+	//	$nameParts = $this->nameParts();
+	//
+	//	//implode the name parts, except the last part (the last part will be the class name)
+	//	return collect(trim($rootNamespace, '\\'))
+	//		->merge($nameParts->take($nameParts->count() - 1))
+	//		->implode('\\');
+	//}
+	//
+	//protected function nameParts(): Collection
+	//{
+	//	return Str::of($this->getNameArgument())
+	//		->replace('/', DIRECTORY_SEPARATOR)
+	//		->replace('\\', DIRECTORY_SEPARATOR)
+	//		->explode(DIRECTORY_SEPARATOR)
+	//		->filter();
+	//}
 	
 	protected function isDryRun(): bool
 	{
@@ -213,8 +213,8 @@ abstract class FileGeneratorCommand extends Command
 	protected function fileRecipeInstance(FileRecipe|array $fileRecipe, string|int $key): FileRecipe
 	{
 		return FileRecipe::instance($fileRecipe)
-			->withScope($key)
-			->withDefaultReplacements($this->defaultReplacements($fileRecipe));
+			->withScope($key);
+			//->withDefaultReplacements($this->defaultReplacements($fileRecipe));
 	}
 	
 	//protected function outputStubContentsToConsole(Stub $stub)
