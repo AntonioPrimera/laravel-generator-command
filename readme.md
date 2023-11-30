@@ -86,13 +86,13 @@ protected function recipe(): array
     //the file recipe constructor will require the only 2 mandatory attributes for a recipe
     $jsonRecipe = FileRecipe::create(
              stub: 'path/to/stubFile.json.stub',
-             target: 'path/to/target/root',
+             targetFolder: 'path/to/target/root',
              fileNameTransformer: fn(string $fileName) => strtolower($fileName)
         );
     
     $jsRecipe = FileRecipe::create(
              stub: 'path/to/stubFile.js.stub',
-             target: public_path('js'),
+             targetFolder: public_path('js'),
              fileNameTransformer: 'snake',
              replace: ['GENERATED_ON', now()->format('d.m.Y H:i:s')]
          );

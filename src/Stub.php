@@ -4,52 +4,37 @@ namespace AntonioPrimera\Artisan;
 
 use AntonioPrimera\Artisan\Exceptions\TargetFileExistsException;
 use Illuminate\Contracts\Filesystem\FileNotFoundException;
+use AntonioPrimera\FileSystem\File;
 
-class Stub
+class Stub extends File
 {
-	protected File $source;
-	protected File $target;
+	/**
+	 * The extension of the target file (without the dot), guessed
+	 * from the stub file name, by removing the .stub extension
+	 */
+	public readonly string $targetFileExtension;
 	
-	public function __construct(string|File $stubFile, string|File $targetFile)
+	public function __construct(string|File $path)
 	{
-		$this->source = $stubFile instanceof File ? $stubFile : File::createFromPath($stubFile);
-		if (!$this->source->exists())
-			throw new FileNotFoundException("Stub file {$this->source->getFullPath()} could not be found");
+		parent::__construct((string) $path);
 		
-		$this->target = $targetFile instanceof File ? $targetFile : File::createFromPath($targetFile);
+		if (!$this->exists())
+			throw new FileNotFoundException("Stub file {$this->path} could not be found");
 		
-		//if the target doesn't have an extension, guess it from the stub file name
-		if (!$this->target->extension)
-			$this->target->extension = $this->guessExtension();
-	}
-	
-	public static function create(string|File $stubFile, string|File $targetFile): static
-	{
-		return new static($stubFile, $targetFile);
+		$this->targetFileExtension = $this->guessExtension();
 	}
 	
 	//--- File operations ---------------------------------------------------------------------------------------------
 	
-	public function generate(array $replace = [], bool $dryRun = false): static
+	public function generate(string|File $targetPath, array $replace = [], bool $dryRun = false): static
 	{
-		if ($dryRun)
-			return $this;
+		$targetFile = File::instance($targetPath);
 		
-		if ($this->target->exists())
-			throw new TargetFileExistsException("Target file {$this->target->getFullPath()} already exists");
+		if ($targetFile->exists())
+			throw new TargetFileExistsException("Target file {$targetFile->path} already exists");
 		
-		$this->target->setContents($this->source->getContents())->replaceInFile($replace);
-		return $this;
-	}
-	
-	/**
-	 * Replace the keys of the given array with their values
-	 * in the stub file contents.
-	 */
-	public function replace(array $replace): static
-	{
-		if ($replace)
-			$this->target->replaceInFile($replace);
+		$this->copyContentsToFile($targetFile, $dryRun);
+		$targetFile->replaceInFile($replace, $dryRun);
 		
 		return $this;
 	}
@@ -59,6 +44,6 @@ class Stub
 	protected function guessExtension(): string
 	{
 		//get the stub file name and return everything after the first '.' (excluding .stub)
-		return explode('.', basename($this->source->getFullPath(), '.stub'), 2)[1] ?? '';
+		return File::instance(basename($this->path, '.stub'))->getExtension(10);
 	}
 }

@@ -1,36 +1,33 @@
 <?php
-
 namespace AntonioPrimera\Artisan;
 
-use Illuminate\Support\Collection;
+use AntonioPrimera\FileSystem\Folder;
 use Illuminate\Support\Str;
+use AntonioPrimera\FileSystem\File;
 
 class FileRecipe
 {
-	public File $stub;
-	public File $target;
+	public Stub $stub;
+	public Folder $target;
+	public string $extension = '';
 	public string|null $rootNamespace = null;
 	public array $replace = [];
 	public string $scope = '';					//only used for console messages
 	public mixed $fileNameTransformer = null;	//optional: used to transform the target file name
 	
 	public function __construct(
-		string|File $stub,
-		string|File $target,
-		string|null $rootNamespace = null,
-		array $replace = [],
-		string $scope = '',
-		string $extension = '',
-		mixed $fileNameTransformer = null
+		string|File|Stub $stub,
+		string|Folder    $targetFolder,
+		string|null      $rootNamespace = null,
+		array            $replace = [],
+		string           $scope = '',
+		string           $extension = '',
+		mixed            $fileNameTransformer = null
 	)
 	{
-		$this->stub = is_string($stub)
-			? File::createFromPath($stub)
-			: $stub;
-		
-		$this->target = is_string($target)
-			? File::create(folder: $target, extension: $extension)
-			: $target;
+		$this->stub = Stub::instance($this->absolutePath($stub));
+		$this->target = Folder::instance($this->absolutePath($targetFolder));
+		$this->extension = $extension;
 		
 		$this->rootNamespace = $rootNamespace;
 		$this->replace = $replace;
@@ -39,16 +36,16 @@ class FileRecipe
 	}
 	
 	public static function create(
-		string|File $stub,
-		string|File $target,
-		string|null $rootNamespace = null,
-		array $replace = [],
-		string $scope = '',
-		string $extension = '',
-		mixed $fileNameTransformer = null
+		string|File|Stub $stub,
+		string|Folder    $targetFolder,
+		string|null      $rootNamespace = null,
+		array            $replace = [],
+		string           $scope = '',
+		string           $extension = '',
+		mixed            $fileNameTransformer = null
 	): static
 	{
-		return new static($stub, $target, $rootNamespace, $replace, $scope, $extension, $fileNameTransformer);
+		return new static($stub, $targetFolder, $rootNamespace, $replace, $scope, $extension, $fileNameTransformer);
 	}
 	
 	public static function instance(FileRecipe|array $fileRecipe): static
@@ -56,17 +53,17 @@ class FileRecipe
 		if ($fileRecipe instanceof FileRecipe)
 			return $fileRecipe;
 		
-		//the stub must be a string or a File instance
+		//the stub must be a string, a File instance or a Stub instance
 		if (!(
 			isset($fileRecipe['stub'])
 			&& (is_string($fileRecipe['stub']) || $fileRecipe['stub'] instanceof File)
 		))
 			throw new \InvalidArgumentException("FileRecipe array must contain a valid 'stub' key");
 		
-		//the target must be a string or a File instance
+		//the target must be a string or a Folder instance
 		if (!(
 			isset($fileRecipe['target'])
-			&& (is_string($fileRecipe['target']) || $fileRecipe['target'] instanceof File)
+			&& (is_string($fileRecipe['target']) || $fileRecipe['target'] instanceof Folder)
 		))
 			throw new \InvalidArgumentException("FileRecipe array must contain a valid 'target' key");
 		
@@ -83,22 +80,26 @@ class FileRecipe
 	
 	//--- Recipe cooking ----------------------------------------------------------------------------------------------
 	
-	public function run(string $targetRelativePath, string $targetFileName, bool $dryRun = false): static
+	/**
+	 * Run the recipe and return the resulting file instance
+	 */
+	public function run(string $targetRelativePath, string $targetFileName, bool $dryRun = false): File
 	{
+		$fileName = $this->transformFileName($targetFileName, $this->fileNameTransformer);
+		$fileExtension = ltrim($this->extension ?: $this->stub->targetFileExtension, '.');
+		
 		//set the relative target path and the target file name (also transforms the file name if a transformer is set)
-		$this->target
+		$targetFile = $this->target
 			->subFolder($targetRelativePath)
-			->setFilename($targetFileName)
-			->transformFileName($this->fileNameTransformer);
+			->file("$fileName.$fileExtension");
 		
 		//now that we have the final file name, set the default replacements (DUMMY_NAMESPACE, DUMMY_CLASS)
 		$this->withDefaultReplacements($this->defaultReplacements("$targetRelativePath/$targetFileName"));
 		
-		//create the stub instance, which generates the target file and replaces the placeholders
-		Stub::create($this->stub, $this->target)
-			->generate($this->replace, $dryRun);
+		//let the stub generate the target file with the given replacements
+		$this->stub->generate($targetFile, $this->replace, $dryRun);
 		
-		return $this;
+		return $targetFile;
 	}
 	
 	//--- Syntactic sugar ---------------------------------------------------------------------------------------------
@@ -143,7 +144,7 @@ class FileRecipe
 	{
 		return [
 			'DUMMY_NAMESPACE' => $this->getPsr4Namespace($targetName),
-			'DUMMY_CLASS' 	  => $this->target->fileName
+			'DUMMY_CLASS' 	  => Str::studly(basename($targetName)),
 		];
 	}
 	
@@ -156,5 +157,28 @@ class FileRecipe
 			->filter()											//remove empty parts
 			->prepend(trim($this->rootNamespace ?: 'App', '\\'))	//prepend the root namespace
 			->implode('\\');								//implode the parts back together
+	}
+	
+	protected function absolutePath(string|File|Folder $file): string
+	{
+		return str_starts_with((string) $file, '/')
+			? (string) $file
+			: base_path((string) $file);
+	}
+	
+	//--- File name manipulation --------------------------------------------------------------------------------------
+	
+	/**
+	 * Transform the given file name using the given transformer
+	 */
+	protected function transformFileName(string $fileName, mixed $transformer): string
+	{
+		if (is_callable($transformer))
+			return $transformer($fileName);
+		
+		if (is_string($transformer) && is_callable([Str::class, $transformer]))
+			return Str::$transformer($fileName);
+		
+		return $fileName;
 	}
 }

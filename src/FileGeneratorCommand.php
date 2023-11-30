@@ -7,7 +7,7 @@ use Exception;
 use Illuminate\Console\Command;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\App;
-use Illuminate\Support\Str;
+use \AntonioPrimera\FileSystem\File;
 
 abstract class FileGeneratorCommand extends Command
 {
@@ -40,19 +40,17 @@ abstract class FileGeneratorCommand extends Command
 				/* @var FileRecipe $fileRecipe */
 				
 				try {
-					$fileRecipe->run($this->getTargetRelativePath(), $this->getTargetFileName(), $this->isDryRun());
+					$createdFile = $fileRecipe->run(
+						$this->getTargetRelativePath(),
+						$this->getTargetFileName(),
+						$this->isDryRun()
+					);
 					
-					$createdFile = $fileRecipe->target->getFullPath();
 					$this->createdFiles[] = $createdFile;
-					$this->info("Created new $fileRecipe->scope at: $createdFile");
+					$this->info("Created new $fileRecipe->scope at: $createdFile->path");
 				} catch (TargetFileExistsException $exception) {
 					$this->warn($exception->getMessage());
 				}
-				
-				
-				//output the target file contents if in dry-run mode (debug mode)
-				//if ($this->isDryRun())
-				//	$this->outputStubContentsToConsole($stub);
 			}
 			
 			$this->afterFileCreation();			    													//  -->>> Hook
@@ -118,11 +116,12 @@ abstract class FileGeneratorCommand extends Command
 		
 		//try to remove all generated files
 		foreach ($this->createdFiles as $createdFile) {
+			/* @var File $createdFile */
 			try {
-				unlink($createdFile);
-				$this->info("Cleanup - removed generated file: $createdFile");
+				$createdFile->delete();
+				$this->info("Cleanup - removed generated file: $createdFile->path");
 			} catch (Exception $exception) {
-				$this->error("Cleanup - failed to remove generated file: $createdFile. Error: {$exception->getMessage()}.");
+				$this->error("Cleanup - failed to remove generated file: $createdFile->path. Error: {$exception->getMessage()}.");
 				$successfulCleanup = false;
 			}
 		}
@@ -134,6 +133,8 @@ abstract class FileGeneratorCommand extends Command
 				'Cleanup finished with issues! Please check the cleanup log above and remove the files manually'
 			);
 	}
+	
+	//--- Command helpers ---------------------------------------------------------------------------------------------
 	
 	public function getNameArgument(): string
 	{
@@ -157,83 +158,17 @@ abstract class FileGeneratorCommand extends Command
 		return pathinfo($this->getNameArgument(), PATHINFO_FILENAME);
 	}
 	
-	//--- Protected helpers -------------------------------------------------------------------------------------------
-	
-	protected function getRecipe(): array
-	{
-		if (!$this->_cachedFileRecipeList) {
-			//transform all items in the recipe to FileRecipe instances
-			$this->_cachedFileRecipeList = Collection::wrap($this->recipe() ?: $this->recipe)
-				->map(fn ($fileRecipe, $key) => $this->fileRecipeInstance($fileRecipe, $key))
-				->toArray();
-		}
-		
-		return $this->_cachedFileRecipeList;
-	}
-	
-	///**
-	// * Replace DUMMY_NAMESPACE and DUMMY_CLASS with the default values
-	// */
-	//protected function defaultReplacements(array|FileRecipe $fileRecipe): array
-	//{
-	//	$rootNamespace = $fileRecipe instanceof FileRecipe
-	//		? $fileRecipe->rootNamespace
-	//		: ($fileRecipe['rootNamespace'] ?? null);
-	//
-	//	return [
-	//		'DUMMY_NAMESPACE' => $this->getPsr4Namespace($rootNamespace ?: 'App'),
-	//		'DUMMY_CLASS' 	  => Str::studly($this->nameParts()->last()),
-	//	];
-	//}
-	//
-	//protected function getPsr4Namespace(string $rootNamespace): string
-	//{
-	//	$nameParts = $this->nameParts();
-	//
-	//	//implode the name parts, except the last part (the last part will be the class name)
-	//	return collect(trim($rootNamespace, '\\'))
-	//		->merge($nameParts->take($nameParts->count() - 1))
-	//		->implode('\\');
-	//}
-	//
-	//protected function nameParts(): Collection
-	//{
-	//	return Str::of($this->getNameArgument())
-	//		->replace('/', DIRECTORY_SEPARATOR)
-	//		->replace('\\', DIRECTORY_SEPARATOR)
-	//		->explode(DIRECTORY_SEPARATOR)
-	//		->filter();
-	//}
-	
-	protected function isDryRun(): bool
+	public function isDryRun(): bool
 	{
 		return $this->hasOption('dry-run') ? $this->option('dry-run') : false;
 	}
 	
-	protected function fileRecipeInstance(FileRecipe|array $fileRecipe, string|int $key): FileRecipe
-	{
-		return FileRecipe::instance($fileRecipe)
-			->withScope($key);
-			//->withDefaultReplacements($this->defaultReplacements($fileRecipe));
-	}
+	//--- Protected helpers -------------------------------------------------------------------------------------------
 	
-	//protected function outputStubContentsToConsole(Stub $stub)
-	//{
-	//	$this->newLine();
-	//	$this->warn("Target file contents:");
-	//	$this->newLine();
-	//
-	//	$lines = Str::of($stub->getContents())->explode("\n");
-	//
-	//	foreach ($lines->take(30) as $line) {
-	//		$this->line($line);
-	//	}
-	//
-	//	if ($lines->count() > 30) {
-	//		$this->newLine();
-	//		$this->warn("... (only the first 30 lines are shown) ...");
-	//	}
-	//
-	//	$this->newLine();
-	//}
+	protected function getRecipe(): array
+	{
+		return $this->_cachedFileRecipeList ??= Collection::wrap($this->recipe() ?: $this->recipe)
+			->map(fn ($recipe, $key) => FileRecipe::instance($recipe)->withScope($key))
+			->toArray();
+	}
 }

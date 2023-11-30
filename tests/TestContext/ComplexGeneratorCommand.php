@@ -5,6 +5,7 @@ namespace AntonioPrimera\Artisan\Tests\TestContext;
 //use function PHPUnit\TestFixture\func;
 
 use AntonioPrimera\Artisan\File;
+use AntonioPrimera\FileSystem\Folder;
 
 class ComplexGeneratorCommand extends \AntonioPrimera\Artisan\FileGeneratorCommand
 {
@@ -52,9 +53,10 @@ class ComplexGeneratorCommand extends \AntonioPrimera\Artisan\FileGeneratorComma
 			],
 			
 			'JsonFile' => [
-				'target' => File::create(folder: __DIR__ . '/GeneratedFiles', extension: '.json'),
+				'target' => Folder::instance(__DIR__ . '/GeneratedFiles'),
 				'stub' => __DIR__ . '/stubs/jsonFile.json.stub',
 				'fileNameFormat' => 'upper',
+				'extension' => '.json',
 				'replace' => [
 					'DUMMY_KEY_1' => 'tic',
 					'DUMMY_VALUE_1' => 'tac',
