@@ -31,7 +31,6 @@ trait CustomAssertions
 	protected function assertFoldersExist($paths)
 	{
 		foreach (Arr::wrap($paths) as $path) {
-			//$this->assertFoldersExist()
 			$this->assertDirectoryExists($this->realPath($path));
 		}
 	}

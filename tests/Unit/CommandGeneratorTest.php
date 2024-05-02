@@ -4,14 +4,14 @@ namespace AntonioPrimera\Artisan\Tests\Unit;
 use AntonioPrimera\Artisan\Tests\CustomAssertions;
 use AntonioPrimera\Artisan\Tests\TestCase;
 use AntonioPrimera\FileSystem\File;
-use AntonioPrimera\FileSystem\Folder;
 use Illuminate\Support\Facades\Artisan;
+use PHPUnit\Framework\Attributes\Test;
 
 class CommandGeneratorTest extends TestCase
 {
 	use CustomAssertions;
 	
-	/** @test */
+	#[Test]
 	public function the_command_should_create_a_generator_command()
 	{
 		$targetFile = File::instance(app_path('Console/Commands/Generators/RandomCommand.php'));

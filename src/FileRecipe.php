@@ -2,6 +2,7 @@
 namespace AntonioPrimera\Artisan;
 
 use AntonioPrimera\FileSystem\Folder;
+use AntonioPrimera\FileSystem\OS;
 use Illuminate\Support\Str;
 use AntonioPrimera\FileSystem\File;
 
@@ -94,6 +95,7 @@ class FileRecipe
 			->file("$fileName.$fileExtension");
 		
 		//now that we have the final file name, set the default replacements (DUMMY_NAMESPACE, DUMMY_CLASS)
+		//it is safe to just use '/' as a separator, because the path will be normalized inside the function
 		$this->withDefaultReplacements($this->defaultReplacements("$targetRelativePath/$targetFileName"));
 		
 		//let the stub generate the target file with the given replacements
@@ -161,7 +163,7 @@ class FileRecipe
 	
 	protected function absolutePath(string|File|Folder $file): string
 	{
-		return str_starts_with((string) $file, '/')
+		return OS::isAbsolutePath((string) $file)
 			? (string) $file
 			: base_path((string) $file);
 	}

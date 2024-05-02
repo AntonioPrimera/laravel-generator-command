@@ -11,6 +11,7 @@ use AntonioPrimera\Artisan\Tests\TestHelpers;
 use AntonioPrimera\FileSystem\File;
 use Illuminate\Console\Application;
 use Illuminate\Support\Facades\Artisan;
+use PHPUnit\Framework\Attributes\Test;
 
 class FileGenerationTest extends TestCase
 {
@@ -43,13 +44,13 @@ class FileGenerationTest extends TestCase
 	
 	//--- Actual tests ------------------------------------------------------------------------------------------------
 	
-	/** @test */
+	#[Test]
 	public function test_context_test_artisan_command_is_set_up_and_can_be_run()
 	{
 		$this->assertEquals(0, Artisan::call('make:gen-test-simple', ['name' => 'TargetPath/TargetFile']));
 	}
 	
-	/** @test */
+	#[Test]
 	public function it_can_handle_a_simple_recipe_with_one_file()
 	{
 		$this->assertDirectoryDoesNotExist(__DIR__ . '/../TestContext/GeneratedFiles');
@@ -74,7 +75,7 @@ class FileGenerationTest extends TestCase
 		);
 	}
 	
-	/** @test */
+	#[Test]
 	public function it_can_handle_a_complex_recipe()
 	{
 		$this->assertDirectoryDoesNotExist(__DIR__ . '/../TestContext/GeneratedFiles');
@@ -110,7 +111,7 @@ class FileGenerationTest extends TestCase
 		);
 	}
 	
-	/** @test */
+	#[Test]
 	public function if_relative_stub_and_target_paths_are_given_the_paths_will_be_relative_to_the_project_root()
 	{
 		RelativePathGeneratorCommand::$staticRecipe = [
@@ -141,7 +142,7 @@ class FileGenerationTest extends TestCase
 		$targetFile->delete();
 	}
 	
-	/** @test */
+	#[Test]
 	public function if_the_target_file_already_exists_it_will_not_be_overwritten()
 	{
 		RelativePathGeneratorCommand::$staticRecipe = [
@@ -171,7 +172,7 @@ class FileGenerationTest extends TestCase
 	
 	//--- Testing some custom scenarios -------------------------------------------------------------------------------
 	
-	/** @test */
+	#[Test]
 	public function testing_a_failing_scenario_from_package_antonio_primera_laravel_admin_panel()
 	{
 		//--- Setup ------------------------------------------------

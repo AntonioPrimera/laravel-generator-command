@@ -2,6 +2,8 @@
 
 namespace AntonioPrimera\Artisan;
 
+use AntonioPrimera\FileSystem\OS;
+
 class MakeCommand extends FileGeneratorCommand
 {
 	protected $signature = 'make:generator-command {name}';
@@ -11,7 +13,7 @@ class MakeCommand extends FileGeneratorCommand
 	{
 		return [
 			'Generator Command' => FileRecipe::create(
-					__DIR__ . '/stubs/GeneratorCommandStub.php.stub',
+					OS::path(__DIR__, 'stubs/GeneratorCommandStub.php.stub'),
 					app_path('Console/Commands/'),
 					'App\\Console\\Commands'
 				),
