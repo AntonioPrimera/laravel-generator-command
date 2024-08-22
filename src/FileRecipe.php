@@ -1,6 +1,7 @@
 <?php
 namespace AntonioPrimera\Artisan;
 
+use AntonioPrimera\Artisan\Exceptions\InvalidRecipeException;
 use AntonioPrimera\FileSystem\Folder;
 use AntonioPrimera\FileSystem\OS;
 use Illuminate\Support\Str;
@@ -8,45 +9,57 @@ use AntonioPrimera\FileSystem\File;
 
 class FileRecipe
 {
-	public Stub $stub;
-	public Folder $target;
-	public string $extension = '';
+	public Stub|null $stub = null;
+	public Folder|null $target = null;
+	public string|null $extension = null;
 	public string|null $rootNamespace = null;
 	public array $replace = [];
-	public string $scope = '';					//only used for console messages
-	public mixed $fileNameTransformer = null;	//optional: used to transform the target file name
+	public string|null $scope = null;				//only used for console messages
+	public mixed $fileNameTransformer = null;		//optional: used to transform the target file name
+	public mixed $relativePathTransformer = null;	//optional: used to transform the target relative path
 	
 	public function __construct(
-		string|File|Stub $stub,
-		string|Folder    $targetFolder,
-		string|null      $rootNamespace = null,
-		array            $replace = [],
-		string           $scope = '',
-		string           $extension = '',
-		mixed            $fileNameTransformer = null
+		string|File|Stub|null 	$stub = null,
+		string|Folder|null    	$targetFolder = null,
+		string|null      		$rootNamespace = null,
+		array            		$replace = [],
+		string|null        		$scope = null,
+		string|null        		$extension = null,
+		mixed            		$fileNameTransformer = null,
+		mixed					$relativePathTransformer = null
 	)
 	{
-		$this->stub = Stub::instance($this->absolutePath($stub));
-		$this->target = Folder::instance($this->absolutePath($targetFolder));
-		$this->extension = $extension;
-		
-		$this->rootNamespace = $rootNamespace;
-		$this->replace = $replace;
-		$this->scope = $scope;
-		$this->fileNameTransformer = $fileNameTransformer;
+		$this->withStub($stub)
+			->withTargetFolder($targetFolder)
+			->withExtension($extension)
+			->withRootNamespace($rootNamespace)
+			->withReplace($replace)
+			->withScope($scope)
+			->withFileNameTransformer($fileNameTransformer)
+			->withRelativePathTransformer($relativePathTransformer);
 	}
 	
 	public static function create(
-		string|File|Stub $stub,
-		string|Folder    $targetFolder,
-		string|null      $rootNamespace = null,
-		array            $replace = [],
-		string           $scope = '',
-		string           $extension = '',
-		mixed            $fileNameTransformer = null
+		string|File|Stub|null	$stub = null,
+		string|Folder|null    	$targetFolder = null,
+		string|null      		$rootNamespace = null,
+		array            		$replace = [],
+		string|null           	$scope = null,
+		string|null        		$extension = null,
+		mixed            		$fileNameTransformer = null,
+		mixed					$relativePathTransformer = null
 	): static
 	{
-		return new static($stub, $targetFolder, $rootNamespace, $replace, $scope, $extension, $fileNameTransformer);
+		return new static(
+			stub: $stub,
+			targetFolder: $targetFolder,
+			rootNamespace: $rootNamespace,
+			replace: $replace,
+			scope: $scope,
+			extension: $extension,
+			fileNameTransformer: $fileNameTransformer,
+			relativePathTransformer: $relativePathTransformer
+		);
 	}
 	
 	public static function instance(FileRecipe|array $fileRecipe): static
@@ -69,13 +82,14 @@ class FileRecipe
 			throw new \InvalidArgumentException("FileRecipe array must contain a valid 'target' key");
 		
 		return new static(
-			$fileRecipe['stub'],
-			$fileRecipe['target'],
-			$fileRecipe['rootNamespace'] ?? null,
-			$fileRecipe['replace'] ?? [],
-			$fileRecipe['scope'] ?? '',
-			$fileRecipe['extension'] ?? '',
-			$fileRecipe['fileNameTransformer'] ?? $fileRecipe['fileNameFormat'] ?? null
+			stub: $fileRecipe['stub'],
+			targetFolder: $fileRecipe['target'],
+			rootNamespace: $fileRecipe['rootNamespace'] ?? null,
+			replace: $fileRecipe['replace'] ?? [],
+			scope: $fileRecipe['scope'] ?? null,
+			extension: $fileRecipe['extension'] ?? '',
+			fileNameTransformer: $fileRecipe['fileNameTransformer'] ?? null,
+			relativePathTransformer: $fileRecipe['relativePathTransformer'] ?? null
 		);
 	}
 	
@@ -86,17 +100,21 @@ class FileRecipe
 	 */
 	public function run(string $targetRelativePath, string $targetFileName, bool $dryRun = false): File
 	{
-		$fileName = $this->transformFileName($targetFileName, $this->fileNameTransformer);
+		//validate the recipe before running it
+		$this->validate();
+		
+		$relativePath = $this->transformString($targetRelativePath, $this->relativePathTransformer);
+		$fileName = $this->transformString($targetFileName, $this->fileNameTransformer);
 		$fileExtension = ltrim($this->extension ?: $this->stub->targetFileExtension, '.');
 		
 		//set the relative target path and the target file name (also transforms the file name if a transformer is set)
 		$targetFile = $this->target
-			->subFolder($targetRelativePath)
+			->subFolder($relativePath)
 			->file("$fileName.$fileExtension");
 		
 		//now that we have the final file name, set the default replacements (DUMMY_NAMESPACE, DUMMY_CLASS)
 		//it is safe to just use '/' as a separator, because the path will be normalized inside the function
-		$this->withDefaultReplacements($this->defaultReplacements("$targetRelativePath/$targetFileName"));
+		$this->withDefaultReplacements($this->defaultReplacements("$relativePath/$targetFileName"));
 		
 		//let the stub generate the target file with the given replacements
 		$this->stub->generate($targetFile, $this->replace, $dryRun);
@@ -104,15 +122,33 @@ class FileRecipe
 		return $targetFile;
 	}
 	
-	//--- Syntactic sugar ---------------------------------------------------------------------------------------------
+	//--- Fluent interface --------------------------------------------------------------------------------------------
 	
-	public function withRootNamespace(string $rootNamespace): static
+	public function withStub(string|File|Stub|null $stub): static
+	{
+		$this->stub = $stub ? Stub::instance($this->absolutePath($stub)) : null;
+		return $this;
+	}
+	
+	public function withTargetFolder(string|Folder|null $target): static
+	{
+		$this->target = $target ? Folder::instance($this->absolutePath($target)) : null;
+		return $this;
+	}
+	
+	public function withRootNamespace(string|null $rootNamespace): static
 	{
 		$this->rootNamespace = $rootNamespace;
 		return $this;
 	}
 	
-	public function withScope(string $scope): static
+	public function withExtension(string|null $extension): static
+	{
+		$this->extension = $extension;
+		return $this;
+	}
+	
+	public function withScope(string|null $scope): static
 	{
 		$this->scope = $scope;
 		return $this;
@@ -121,7 +157,7 @@ class FileRecipe
 	/**
 	 * Add [... 'placeholder' => 'replacement' ...] pairs to the recipe.
 	 */
-	public function replace(array $replace): static
+	public function withReplace(array $replace): static
 	{
 		$this->replace = array_merge($this->replace, $replace);
 		return $this;
@@ -133,6 +169,18 @@ class FileRecipe
 	public function withDefaultReplacements(array $replace): static
 	{
 		$this->replace = array_merge($replace, $this->replace);
+		return $this;
+	}
+	
+	public function withFileNameTransformer(mixed $transformer): static
+	{
+		$this->fileNameTransformer = $transformer;
+		return $this;
+	}
+	
+	public function withRelativePathTransformer(mixed $transformer): static
+	{
+		$this->relativePathTransformer = $transformer;
 		return $this;
 	}
 	
@@ -170,17 +218,25 @@ class FileRecipe
 	
 	//--- File name manipulation --------------------------------------------------------------------------------------
 	
-	/**
-	 * Transform the given file name using the given transformer
-	 */
-	protected function transformFileName(string $fileName, mixed $transformer): string
+	protected function transformString(string $string, mixed $transformer): string
 	{
 		if (is_callable($transformer))
-			return $transformer($fileName);
+			return $transformer($string);
 		
 		if (is_string($transformer) && is_callable([Str::class, $transformer]))
-			return Str::$transformer($fileName);
+			return Str::$transformer($string);
 		
-		return $fileName;
+		return $string;
+	}
+	
+	//--- Recipe validation -------------------------------------------------------------------------------------------
+	
+	protected function validate(): void
+	{
+		if ($this->stub === null)
+			throw new InvalidRecipeException("FileRecipe is missing the stub");
+		
+		if ($this->target === null)
+			throw new InvalidRecipeException("FileRecipe is missing the target folder");
 	}
 }

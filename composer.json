@@ -12,10 +12,12 @@
     "require": {
         "php": "^8.2",
         "illuminate/support": ">=11.0",
-        "antonioprimera/filesystem": "^1.6"
+        "antonioprimera/filesystem": "^1.6",
+        "antonioprimera/php-helpers": "^0.1.0"
     },
     "require-dev": {
-        "orchestra/testbench": "^9.0"
+        "orchestra/testbench": "^9.0",
+        "spatie/ray": "^1.41"
     },
     "autoload": {
         "psr-4": {

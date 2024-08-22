@@ -4,76 +4,18 @@ namespace AntonioPrimera\Artisan\Tests\Unit;
 use AntonioPrimera\Artisan\FileRecipe;
 use AntonioPrimera\Artisan\Tests\CustomAssertions;
 use AntonioPrimera\Artisan\Tests\TestCase;
-use AntonioPrimera\Artisan\Tests\TestContext\ComplexGeneratorCommand;
 use AntonioPrimera\Artisan\Tests\TestContext\RelativePathGeneratorCommand;
-use AntonioPrimera\Artisan\Tests\TestContext\SimpleGeneratorCommand;
 use AntonioPrimera\Artisan\Tests\TestHelpers;
+use AntonioPrimera\Artisan\Tests\Traits\RunsTestCommands;
 use AntonioPrimera\FileSystem\File;
-use Illuminate\Console\Application;
 use Illuminate\Support\Facades\Artisan;
 use PHPUnit\Framework\Attributes\Test;
 
 class FileGenerationTest extends TestCase
 {
-	use TestHelpers, CustomAssertions;
-	
-	protected function setUp(): void
-	{
-		parent::setUp();
-		
-		$commandClasses = [
-			ComplexGeneratorCommand::class,			//make:gen-test-complex
-			SimpleGeneratorCommand::class,			//make:gen-test-simple
-			RelativePathGeneratorCommand::class,	//make:gen-test-relative
-		];
-		
-		Application::starting(function ($artisan) use ($commandClasses) {
-			foreach ($commandClasses as $commandClass) {
-				$artisan->resolveCommands($commandClass);
-			}
-		});
-		
-		$this->cleanupFilesAndFolders();
-	}
-	
-	protected function tearDown(): void
-	{
-		parent::tearDown();
-		$this->cleanupFilesAndFolders();
-	}
+	use TestHelpers, CustomAssertions, RunsTestCommands;
 	
 	//--- Actual tests ------------------------------------------------------------------------------------------------
-	
-	#[Test]
-	public function test_context_test_artisan_command_is_set_up_and_can_be_run()
-	{
-		$this->assertEquals(0, Artisan::call('make:gen-test-simple', ['name' => 'TargetPath/TargetFile']));
-	}
-	
-	#[Test]
-	public function it_can_handle_a_simple_recipe_with_one_file()
-	{
-		$this->assertDirectoryDoesNotExist(__DIR__ . '/../TestContext/GeneratedFiles');
-		
-		Artisan::call('make:gen-test-simple', ['name' => 'TargetPath/TargetFile']);
-		
-		//dump(File::directories(__DIR__ . '/../TestContext'));
-		$this->assertFoldersExist(__DIR__ . '/../TestContext/GeneratedFiles');
-		$this->assertFilesExist(__DIR__ . '/../TestContext/GeneratedFiles/Components/TargetPath/TargetFile.php');
-		
-		$path = __DIR__ . '/../TestContext/GeneratedFiles/Components/TargetPath/TargetFile.php';
-		
-		$this->assertFileContainsStrings([
-			'namespace AntonioPrimera\My\Namespace\TargetPath;',
-			'class TargetFile',
-			"return 'my-message';",
-		], $path);
-		
-		$this->assertFileContentsEquals(
-			"<?phpnamespace AntonioPrimera\My\Namespace\TargetPath;class TargetFile{public function someMethod(){return 'my-message';}}",
-			$path
-		);
-	}
 	
 	#[Test]
 	public function it_can_handle_a_complex_recipe()

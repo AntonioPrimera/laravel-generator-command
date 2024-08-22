@@ -7,7 +7,7 @@ use Exception;
 use Illuminate\Console\Command;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\App;
-use \AntonioPrimera\FileSystem\File;
+use AntonioPrimera\FileSystem\File;
 
 abstract class FileGeneratorCommand extends Command
 {
@@ -16,9 +16,6 @@ abstract class FileGeneratorCommand extends Command
 	 * e.g. $signature = 'make:admin-page {name}'
 	 */
 	protected string $nameArgument = 'name';
-	
-	//a collection of file recipes
-	protected array $recipe = [];
 	
 	//the cached recipe for the current command execution (do not use directly, use getRecipe() instead)
 	protected array|null $_cachedFileRecipeList = null;
@@ -83,10 +80,7 @@ abstract class FileGeneratorCommand extends Command
 	 * 	- replace: an array of 'search' => 'replace with' key-value pairs
 	 * 	- fileNameFormat: optionally, a callable or a static function name of Illuminate\Support\Str
 	 */
-	protected function recipe(): array
-	{
-		return [];
-	}
+	abstract protected function recipe(): array|FileRecipe;
 	
 	//--- Hooks ---------------------------------------------------------------------------------------------------->>>
 	
@@ -167,8 +161,14 @@ abstract class FileGeneratorCommand extends Command
 	
 	protected function getRecipe(): array
 	{
-		return $this->_cachedFileRecipeList ??= Collection::wrap($this->recipe() ?: $this->recipe)
-			->map(fn ($recipe, $key) => FileRecipe::instance($recipe)->withScope($key))
+		return $this->_cachedFileRecipeList ??= $this->setupRecipe();
+	}
+	
+	protected function setupRecipe(): array
+	{
+		return Collection::wrap($this->recipe())
+			->map(fn ($recipe, $key) => FileRecipe::instance($recipe))
+			->map(fn (FileRecipe $recipe, $key) => is_string($key) ? $recipe->withScope($key) : $recipe)
 			->toArray();
 	}
 }

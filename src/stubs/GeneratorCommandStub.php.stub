@@ -10,11 +10,7 @@ class DUMMY_CLASS extends FileGeneratorCommand
 	 * ToDo List:
 	 * 	1. Update the signature, using the {name} parameter for the target file name
 	 * 	2. Update the command description (use a decent and relevant description)
-	 * 	3. Create the recipe for your target file (see options below)
-	 *
-	 * Use either the $recipe attribute or the recipe() method to generate your recipe,
-	 * don't use both. The method has precedence and if a non-empty array is returned,
-	 * the recipe attribute will be ignored. You should delete the one you're not using.
+	 * 	3. Implement the recipe() method to generate your recipe (or set of recipes)
 	 *
 	 * Sample recipes are provided as comments, to get you started faster.
 	 *
@@ -25,27 +21,16 @@ class DUMMY_CLASS extends FileGeneratorCommand
 	protected $signature = "make:some-awesome-file {name}";
 	protected $description = "This command will generate an awesome file for you after it is implemented";
 	
-	protected array $recipe = [
-		//e.g.
-		//'Controller File' => [
-		//	'stub' 			=> __DIR__ . '/stubs/Controller.php.stub',
-		//	'path' 			=> 'Http/Controllers',
-		//	'rootNamespace' => 'App\\Http\\Controllers',
-		//],
-		//'bladeFile' => [
-		//	'stub'     => __DIR__ . '/stubs/bladeFile.blade.php.stub',
-		//	'path' 	   => 'views',			//relative path to the rootPath below
-		//	'rootPath' => 'resource_path',	// >>> resource_path('views')
-		//],
-	];
-	
 	protected function recipe(): array
 	{
-		//$controllerRecipe = new FileRecipe(__DIR__ . '/stubs/Controller.php.stub', 'Http/Controllers');
-		//$controllerRecipe->rootNamespace = 'App\\Http\\Controllers';
-		
-		//$bladeRecipe = new FileRecipe(__DIR__ . '/stubs/bladeFile.blade.php.stub', resource_path('views'));
-		
+		//define your own file recipe using the generic FileRecipe class
+		//$controllerRecipe = FileRecipe::create(__DIR__ . '/stubs/Controller.php.stub', 'Http/Controllers')
+		//	->withRootNamespace('App\\Http\\Controllers');
+
+		//use one of the predefined recipes, which come with a set of default attributes (like the target root folder)
+		//$bladeRecipe = (new BladeRecipe(stub: __DIR__ . '/stubs/BladeFile.blade.php.stub', viewsRelativePath: 'components/sections'))
+		//	->withReplace(['DUMMY_LAYOUT' =>'guest-layout']);
+
 		return [
 			//'Controller' => $controllerRecipe,
 			//'Blade File' => $bladeRecipe,

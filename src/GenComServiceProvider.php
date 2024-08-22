@@ -4,7 +4,7 @@ namespace AntonioPrimera\Artisan;
 
 class GenComServiceProvider extends \Illuminate\Support\ServiceProvider
 {
-	public function boot()
+	public function boot(): void
 	{
 		if ($this->app->runningInConsole()) {
 			$this->commands([

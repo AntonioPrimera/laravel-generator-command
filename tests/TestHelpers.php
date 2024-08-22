@@ -32,7 +32,7 @@ trait TestHelpers
 	/**
 	 * @throws \Exception
 	 */
-	protected function rrmdir($dir)
+	protected function rrmdir($dir): void
 	{
 		if (!is_dir($dir))
 			return;
@@ -54,7 +54,7 @@ trait TestHelpers
 		foreach ($filesAndFolders as $fileOrFolder) {
 			if (in_array($fileOrFolder, ['.', '..']))
 				continue;
-			
+		
 			$path = $dir. DIRECTORY_SEPARATOR . $fileOrFolder;
 			
 			if (is_dir($path) && !is_link($path))
@@ -64,11 +64,5 @@ trait TestHelpers
 		}
 		
 		rmdir($dir);
-	}
-	
-	protected function cleanupFilesAndFolders()
-	{
-		$this->rrmdir(__DIR__ . '/TestContext/GeneratedFiles');
-		$this->rrmdir(app_path('stubs'));
 	}
 }
