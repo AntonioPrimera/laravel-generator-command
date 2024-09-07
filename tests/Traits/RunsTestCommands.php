@@ -2,6 +2,7 @@
 namespace AntonioPrimera\Artisan\Tests\Traits;
 
 use AntonioPrimera\Artisan\Tests\TestContext\ComplexGeneratorCommand;
+use AntonioPrimera\Artisan\Tests\TestContext\FixedNamedGeneratorCommand;
 use AntonioPrimera\Artisan\Tests\TestContext\PrebuiltRecipesGeneratorCommand;
 use AntonioPrimera\Artisan\Tests\TestContext\RelativePathGeneratorCommand;
 use AntonioPrimera\Artisan\Tests\TestHelpers;
@@ -19,6 +20,7 @@ trait RunsTestCommands
 			ComplexGeneratorCommand::class,			//make:gen-test-complex
 			RelativePathGeneratorCommand::class,	//make:gen-test-relative
 			PrebuiltRecipesGeneratorCommand::class,	//make:pbr
+			FixedNamedGeneratorCommand::class,		//make:gen-fixed-name
 		];
 		
 		Application::starting(function ($artisan) use ($commandClasses) {

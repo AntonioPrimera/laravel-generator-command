@@ -262,12 +262,4 @@ class PrebuiltRecipesTest extends TestCase
 		if ($migrationFile && file_exists($migrationFile))
 			unlink($migrationFile);
 	}
-	
-	protected function cleanupFiles(...$files): void
-	{
-		//cleanup any given files
-		foreach ($files as $file)
-			if (file_exists($file))
-				unlink($file);
-	}
 }

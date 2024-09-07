@@ -1,5 +1,4 @@
 <?php
-
 namespace AntonioPrimera\Artisan;
 
 use AntonioPrimera\Artisan\Exceptions\TargetFileExistsException;
@@ -130,16 +129,19 @@ abstract class FileGeneratorCommand extends Command
 	
 	//--- Command helpers ---------------------------------------------------------------------------------------------
 	
-	public function getNameArgument(): string
+	public function getNameArgument(): string|null
 	{
-		return $this->argument($this->nameArgument);
+		return $this->hasArgument($this->nameArgument) ? $this->argument($this->nameArgument) : null;
 	}
 	
 	/**
 	 * Retrieves the path part of the name argument
 	 */
-	public function getTargetRelativePath(): string
+	public function getTargetRelativePath(): string|null
 	{
+		if (!$this->getNameArgument())
+			return null;
+		
 		$path = pathinfo($this->getNameArgument(), PATHINFO_DIRNAME);
 		return $path === '.' ? '' : $path;
 	}
@@ -147,8 +149,11 @@ abstract class FileGeneratorCommand extends Command
 	/**
 	 * Retrieves the file name part of the name argument
 	 */
-	public function getTargetFileName(): string
+	public function getTargetFileName(): string|null
 	{
+		if(!$this->getNameArgument())
+			return null;
+		
 		return pathinfo($this->getNameArgument(), PATHINFO_FILENAME);
 	}
 	

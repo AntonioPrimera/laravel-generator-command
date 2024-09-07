@@ -65,4 +65,12 @@ trait TestHelpers
 		
 		rmdir($dir);
 	}
+	
+	protected function cleanupFiles(...$files): void
+	{
+		//cleanup any given files
+		foreach ($files as $file)
+			if (file_exists($file))
+				unlink($file);
+	}
 }

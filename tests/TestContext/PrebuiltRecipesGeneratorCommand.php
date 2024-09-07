@@ -1,6 +1,7 @@
 <?php
 namespace AntonioPrimera\Artisan\Tests\TestContext;
 
+use AntonioPrimera\Artisan\FileGeneratorCommand;
 use AntonioPrimera\Artisan\FileRecipe;
 use AntonioPrimera\Artisan\FileRecipes\BladeRecipe;
 use AntonioPrimera\Artisan\FileRecipes\CommandRecipe;
@@ -12,10 +13,9 @@ use AntonioPrimera\Artisan\FileRecipes\ModelRecipe;
 use AntonioPrimera\Artisan\FileRecipes\ServiceProviderRecipe;
 use AntonioPrimera\Artisan\FileRecipes\StyleSheetRecipe;
 use AntonioPrimera\Artisan\FileRecipes\ViewComponentRecipe;
-use AntonioPrimera\FileSystem\Folder;
 use Illuminate\Support\Arr;
 
-class PrebuiltRecipesGeneratorCommand extends \AntonioPrimera\Artisan\FileGeneratorCommand
+class PrebuiltRecipesGeneratorCommand extends FileGeneratorCommand
 {
 	protected $signature = 'make:pbr {name} {recipe}';
 	protected string $genericStubPath = __DIR__ . '/stubs/generic-file.php.stub';

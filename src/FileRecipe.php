@@ -98,18 +98,27 @@ class FileRecipe
 	/**
 	 * Run the recipe and return the resulting file instance
 	 */
-	public function run(string $targetRelativePath, string $targetFileName, bool $dryRun = false): File
+	public function run(string|null $targetRelativePath, string|null $targetFileName, bool $dryRun = false): File
 	{
 		//validate the recipe before running it
 		$this->validate();
 		
-		$relativePath = $this->transformString($targetRelativePath, $this->relativePathTransformer);
-		$fileName = $this->transformString($targetFileName, $this->fileNameTransformer);
+		//determine the relative path from the given target relative path
+		$relativePath = $targetRelativePath
+			? $this->transformString($targetRelativePath, $this->relativePathTransformer)
+			: null;
+		
+		//determine the file name from the given target file name, if not null, otherwise use the stub file name
+		$fileName = $targetFileName
+			? $this->transformString($targetFileName, $this->fileNameTransformer)
+			: $this->stub->getNameWithoutExtension(10);
+		
+		//determine the file extension from the given extension or from the stub file
 		$fileExtension = ltrim($this->extension ?: $this->stub->targetFileExtension, '.');
 		
 		//set the relative target path and the target file name (also transforms the file name if a transformer is set)
 		$targetFile = $this->target
-			->subFolder($relativePath)
+			->subFolder($relativePath ?? '')
 			->file("$fileName.$fileExtension");
 		
 		//now that we have the final file name, set the default replacements (DUMMY_NAMESPACE, DUMMY_CLASS)
