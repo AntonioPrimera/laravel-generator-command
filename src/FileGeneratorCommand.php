@@ -17,7 +17,6 @@ abstract class FileGeneratorCommand extends Command
 	protected string $nameArgument = 'name';
 	
 	//the cached recipe for the current command execution (do not use directly, use getRecipe() instead)
-	protected array|null $_cachedFileRecipeList = null;
 	protected array $createdFiles = [];
 	
 	public function handle(): int
@@ -52,7 +51,7 @@ abstract class FileGeneratorCommand extends Command
 			$this->afterFileCreation();			    													//  -->>> Hook
 		} catch (Exception $exception) {
 			if (App::environment('testing')) {
-				dump('Created files:', $this->createdFiles);
+				ray('Created files:', $this->createdFiles);
 				throw $exception;
 			}
 			
@@ -166,7 +165,7 @@ abstract class FileGeneratorCommand extends Command
 	
 	protected function getRecipe(): array
 	{
-		return $this->_cachedFileRecipeList ??= $this->setupRecipe();
+		return $this->setupRecipe();
 	}
 	
 	protected function setupRecipe(): array

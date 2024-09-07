@@ -17,6 +17,8 @@ class FileRecipe
 	public string|null $scope = null;				//only used for console messages
 	public mixed $fileNameTransformer = null;		//optional: used to transform the target file name
 	public mixed $relativePathTransformer = null;	//optional: used to transform the target relative path
+	public bool $overwriteFiles = false;			//if true, the target file will be overwritten if it exists
+	public bool $backupFiles = false;				//if true, the target file will be backed up if it exists
 	
 	public function __construct(
 		string|File|Stub|null 	$stub = null,
@@ -125,8 +127,12 @@ class FileRecipe
 		//it is safe to just use '/' as a separator, because the path will be normalized inside the function
 		$this->withDefaultReplacements($this->defaultReplacements("$relativePath/$targetFileName"));
 		
+		//if requested and the target file exists, back it up (just rename it, adding a .backup extension)
+		if ($this->backupFiles && $targetFile->exists)
+			(clone $targetFile)->rename($targetFile->name . '.backup');
+		
 		//let the stub generate the target file with the given replacements
-		$this->stub->generate($targetFile, $this->replace, $dryRun);
+		$this->stub->generate($targetFile, $this->replace, $dryRun, $this->overwriteFiles);
 		
 		return $targetFile;
 	}
@@ -190,6 +196,18 @@ class FileRecipe
 	public function withRelativePathTransformer(mixed $transformer): static
 	{
 		$this->relativePathTransformer = $transformer;
+		return $this;
+	}
+	
+	public function withOverwriteFiles(bool $overwrite = true): static
+	{
+		$this->overwriteFiles = $overwrite;
+		return $this;
+	}
+	
+	public function withBackupFiles(bool $backup = true): static
+	{
+		$this->backupFiles = $backup;
 		return $this;
 	}
 	

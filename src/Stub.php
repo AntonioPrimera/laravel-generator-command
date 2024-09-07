@@ -26,11 +26,17 @@ class Stub extends File
 	
 	//--- File operations ---------------------------------------------------------------------------------------------
 	
-	public function generate(string|File $targetPath, array $replace = [], bool $dryRun = false): static
+	public function generate(
+		string|File $targetPath,
+		array $replace = [],
+		bool $dryRun = false,
+		bool $overwrite = false
+	): static
 	{
 		$targetFile = File::instance($targetPath);
 		
-		if ($targetFile->exists())
+		//ray($targetFile->exists(), $overwrite);
+		if ($targetFile->exists() && !$overwrite)
 			throw new TargetFileExistsException("Target file {$targetFile->path} already exists");
 		
 		$this->copyContentsToFile($targetFile, $dryRun);

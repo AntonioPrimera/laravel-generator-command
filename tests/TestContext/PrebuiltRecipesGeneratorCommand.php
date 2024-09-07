@@ -27,7 +27,7 @@ class PrebuiltRecipesGeneratorCommand extends FileGeneratorCommand
 		$recipe = $this->argument('recipe');
 		$recipeFactoryMethod = 'recipe' . ucfirst($recipe);
 		$recipeInstance = $this->$recipeFactoryMethod();
-		//ray($recipeInstance);
+		
 		return Arr::wrap($recipeInstance);
 	}
 	

@@ -34,7 +34,8 @@ The new command class inherits the abstract `AntonioPrimera\Artisan\FileGenerato
 some commented recipe samples to get you inspired and started as fast as possible.
 
 The FileGeneratorCommand extends the default Laravel Console Command, so you need to provide a signature and optionally
-a description. The signature should have a `{name}` parameter, to get the target file name from the console input.
+a description. The signature should have a `{name}` parameter, to get the target file name from the console input. If
+you want to preserve the stub file names, you can omit the `{name}` parameter (this acts like a publish command).
 
 e.g.
 ```php
