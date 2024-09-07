@@ -129,10 +129,10 @@ class FileRecipe
 		
 		//if requested and the target file exists, back it up (just rename it, adding a .backup extension)
 		if ($this->backupFiles && $targetFile->exists)
-			(clone $targetFile)->rename($targetFile->name . '.backup');
+			$targetFile->clone()->backup();
 		
 		//let the stub generate the target file with the given replacements
-		$this->stub->generate($targetFile, $this->replace, $dryRun, $this->overwriteFiles);
+		$this->stub->generate($targetFile, $this->replace, $dryRun, $this->backupFiles || $this->overwriteFiles);
 		
 		return $targetFile;
 	}
